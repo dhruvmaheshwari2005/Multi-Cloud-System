@@ -2,6 +2,10 @@ pipeline {
 
     agent any
 
+    tools {
+        maven 'Maven'
+    }
+
     stages {
 
         stage('Build') {
@@ -25,7 +29,6 @@ pipeline {
                                  fingerprint: true
             }
         }
-
     }
 
     post {
