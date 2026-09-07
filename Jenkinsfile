@@ -25,7 +25,8 @@ pipeline {
         stage('Archive JAR') {
             steps {
                 echo 'Archiving JAR...'
-                archiveArtifacts artifacts: 'target/*.jar',
+
+                archiveArtifacts artifacts: 'target/costmonitor-0.0.1-SNAPSHOT.jar',
                                  fingerprint: true
             }
         }
@@ -35,56 +36,84 @@ pipeline {
                 echo 'Checking for existing application on port 8081...'
 
                 bat '''
-                    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8081 ^| findstr LISTENING') do (
-                        echo Stopping process %%a
-                        taskkill /PID %%a /F
-                    )
+                    powershell -NoProfile -Command ^
+                    "$connections = Get-NetTCPConnection -LocalPort 8081 -State Listen -ErrorAction SilentlyContinue; ^
+                    if ($connections) { ^
+                        foreach ($connection in $connections) { ^
+                            Write-Host ('Stopping process PID: ' + $connection.OwningProcess); ^
+                            Stop-Process -Id $connection.OwningProcess -Force -ErrorAction SilentlyContinue ^
+                        } ^
+                    } else { ^
+                        Write-Host 'No application is currently running on port 8081.' ^
+                    }"
                 '''
             }
         }
 
         stage('Run Application') {
             steps {
-                echo 'Starting application on port 8081...'
+                echo 'Starting Spring Boot application on port 8081...'
 
                 bat '''
+                    if exist application.log del /F /Q application.log
+
                     set JENKINS_NODE_COOKIE=dontKillMe
+
                     start "" /B java -jar "target\\costmonitor-0.0.1-SNAPSHOT.jar" > application.log 2>&1
                 '''
 
-                sleep 10
+                echo 'Waiting for application to start...'
 
-                bat '''
-                    netstat -ano | findstr :8081
-                '''
+                sleep 15
             }
         }
 
         stage('Verify Application') {
             steps {
-                echo 'Verifying application...'
+                echo 'Verifying application on port 8081...'
 
                 bat '''
-                    powershell -Command "try { $response = Invoke-WebRequest -Uri http://localhost:8081 -UseBasicParsing -TimeoutSec 10; Write-Host ('Application returned HTTP ' + $response.StatusCode) } catch { Write-Host 'Application is not responding on port 8081'; exit 1 }"
+                    powershell -NoProfile -Command ^
+                    "$maxAttempts = 6; ^
+                    $started = $false; ^
+                    for ($i = 1; $i -le $maxAttempts; $i++) { ^
+                        Write-Host ('Checking application - attempt ' + $i + '/' + $maxAttempts); ^
+                        try { ^
+                            $response = Invoke-WebRequest -Uri 'http://localhost:8081' -UseBasicParsing -TimeoutSec 5; ^
+                            Write-Host ('Application is running. HTTP Status: ' + $response.StatusCode); ^
+                            $started = $true; ^
+                            break ^
+                        } catch { ^
+                            Write-Host 'Application is not ready yet...'; ^
+                            Start-Sleep -Seconds 5 ^
+                        } ^
+                    } ^
+                    if (-not $started) { ^
+                        Write-Host 'Application failed to start on port 8081.'; ^
+                        Write-Host '========== application.log =========='; ^
+                        if (Test-Path 'application.log') { Get-Content 'application.log' } ^
+                        exit 1 ^
+                    }"
                 '''
             }
         }
     }
 
     post {
+
         success {
-            echo '================================='
+            echo '=============================================='
             echo 'BUILD SUCCESSFUL!'
-            echo 'Application is running at:'
+            echo 'Application is running on:'
             echo 'http://localhost:8081'
-            echo '================================='
+            echo '=============================================='
         }
 
         failure {
-            echo '================================='
+            echo '=============================================='
             echo 'BUILD FAILED!'
-            echo 'Check application.log for application errors.'
-            echo '================================='
+            echo '=============================================='
+            echo 'Check the application.log output above.'
         }
 
         always {
