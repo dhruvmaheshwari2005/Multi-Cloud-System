@@ -8,6 +8,39 @@ pipeline {
 
     stages {
 
+        stage('Stop Existing Application') {
+            steps {
+                echo 'Checking for existing application on port 8081...'
+
+                powershell '''
+                    $connections = Get-NetTCPConnection `
+                        -LocalPort 8081 `
+                        -State Listen `
+                        -ErrorAction SilentlyContinue
+
+                    if ($connections) {
+
+                        foreach ($connection in $connections) {
+
+                            $processId = $connection.OwningProcess
+
+                            Write-Host "Stopping process PID: $processId"
+
+                            Stop-Process `
+                                -Id $processId `
+                                -Force `
+                                -ErrorAction SilentlyContinue
+                        }
+
+                        Start-Sleep -Seconds 5
+                    }
+                    else {
+                        Write-Host "No application is running on port 8081."
+                    }
+                '''
+            }
+        }
+
         stage('Build') {
             steps {
                 echo 'Building application...'
@@ -30,39 +63,6 @@ pipeline {
                     artifacts: 'target/costmonitor-0.0.1-SNAPSHOT.jar',
                     fingerprint: true
                 )
-            }
-        }
-
-        stage('Stop Existing Application') {
-            steps {
-                echo 'Checking for existing application on port 8081...'
-
-                powershell '''
-                    $connections = Get-NetTCPConnection `
-                        -LocalPort 8081 `
-                        -State Listen `
-                        -ErrorAction SilentlyContinue
-
-                    if ($connections) {
-
-                        foreach ($connection in $connections) {
-
-                            $pid = $connection.OwningProcess
-
-                            Write-Host "Stopping process PID: $pid"
-
-                            Stop-Process `
-                                -Id $pid `
-                                -Force `
-                                -ErrorAction SilentlyContinue
-                        }
-
-                        Start-Sleep -Seconds 2
-                    }
-                    else {
-                        Write-Host "No application is currently running on port 8081."
-                    }
-                '''
             }
         }
 
@@ -160,4 +160,3 @@ pipeline {
         }
     }
 }
-//commit
