@@ -29,12 +29,20 @@ pipeline {
                                  fingerprint: true
             }
         }
+
+        stage('Run Application') {
+            steps {
+                echo 'Starting application on port 8081...'
+                bat 'start /B java -jar target\\costmonitor-0.0.1-SNAPSHOT.jar'
+            }
+        }
     }
 
     post {
         success {
             echo '================================='
             echo 'BUILD SUCCESSFUL!'
+            echo 'Application: http://localhost:8081'
             echo '================================='
         }
 
