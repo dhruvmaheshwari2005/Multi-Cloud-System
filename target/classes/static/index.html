@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Cloud Cost Monitoring Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- AUTHENTICATION CONTAINER (Login / Register) -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fa-solid fa-cloud-bolt text-gradient"></i>
+                    <span class="logo-text">Maheshwari Cloud</span>
+                </div>
+                <h2>Multi-Cloud Intelligence</h2>
+                <p>Monitor, analyze, and optimize AWS, Azure, & OCI costs</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-username">Username</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="login-username" required placeholder="Enter your username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="login-password" required placeholder="Enter your password">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span>Sign In</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <p class="auth-switch">Don't have an account? <a href="#" id="to-signup">Create one</a></p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-user"></i>
+                        <input type="text" id="reg-username" required placeholder="Pick a username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fa-regular fa-envelope"></i>
+                        <input type="email" id="reg-email" required placeholder="yourname@org.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="reg-password" required placeholder="Choose a secure password">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">
+                    <span>Create Account</span> <i class="fa-solid fa-user-plus"></i>
+                </button>
+                <p class="auth-switch">Already registered? <a href="#" id="to-login">Sign In</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER (Sidebar + Workspaces) -->
+    <div id="app-container" class="app-container hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-cloud-bolt text-gradient"></i>
+                    <span class="logo-text">Maheshwari Cloud</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="#" class="nav-link active" data-target="panel-dashboard">
+                            <i class="fa-solid fa-chart-line"></i> <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-target="panel-accounts">
+                            <i class="fa-solid fa-server"></i> <span>Cloud Accounts</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-target="panel-budgets">
+                            <i class="fa-solid fa-wallet"></i> <span>Budgets & Alerts</span>
+                            <span id="badge-unread-alerts" class="badge hidden">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-target="panel-analytics">
+                            <i class="fa-solid fa-chart-pie"></i> <span>Cost Analytics</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-target="panel-reports">
+                            <i class="fa-solid fa-file-invoice-dollar"></i> <span>Monthly Reports</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-target="panel-resources">
+                            <i class="fa-solid fa-cubes"></i> <span>Resource Inventory</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-target="panel-email-sandbox">
+                            <i class="fa-solid fa-envelope-open-text"></i> <span>Simulated Inbox</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile" id="user-profile-trigger" style="cursor: pointer; display: flex; align-items: center; width: 100%;" title="Edit Profile">
+                    <div class="avatar">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <div class="user-info">
+                        <span id="current-username" class="username">Guest</span>
+                        <span class="role">Administrator</span>
+                    </div>
+                    <i class="fa-solid fa-gear" style="font-size: 0.95rem; margin-left: auto; color: #64748b;" id="gear-indicator"></i>
+                </div>
+                <button id="btn-logout" class="btn btn-logout" title="Sign Out">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Body -->
+        <main class="main-content">
+            <!-- Header Bar -->
+            <header class="top-bar">
+                <div class="page-title-section">
+                    <h1 id="page-title">Dashboard Overview</h1>
+                    <p id="page-subtitle">Real-time spending across your integrated cloud infrastructure</p>
+                </div>
+                <div class="top-bar-actions">
+                    <button id="btn-sync-all" class="btn btn-secondary">
+                        <i class="fa-solid fa-rotate"></i> <span>Sync All Providers</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Overview Panel -->
+            <div id="panel-dashboard" class="content-panel active">
+                <!-- KPI Stat Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span>Monthly Cost</span>
+                            <i class="fa-solid fa-calendar-days text-indigo"></i>
+                        </div>
+                        <div class="kpi-value" id="kpi-monthly-spent">$0.00</div>
+                        <div class="kpi-footer">
+                            <span class="kpi-change" id="kpi-change-rate">
+                                <i class="fa-solid fa-arrow-trend-up"></i> 0%
+                            </span>
+                            <span class="kpi-footer-text">vs last month</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span>Projected Cost</span>
+                            <i class="fa-solid fa-magnifying-glass-chart text-purple"></i>
+                        </div>
+                        <div class="kpi-value" id="kpi-projected-spent">$0.00</div>
+                        <div class="kpi-footer">
+                            <span class="kpi-footer-text">Estimated month-end total</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span>Cloud Integrations</span>
+                            <i class="fa-solid fa-network-wired text-emerald"></i>
+                        </div>
+                        <div class="kpi-value" id="kpi-active-accounts">0</div>
+                        <div class="kpi-footer">
+                            <span class="kpi-footer-text">AWS, Azure, & OCI targets</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span>Unread Alerts</span>
+                            <i class="fa-solid fa-bell text-rose"></i>
+                        </div>
+                        <div class="kpi-value text-rose" id="kpi-unread-alerts">0</div>
+                        <div class="kpi-footer">
+                            <span class="kpi-footer-text">Requires immediate attention</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-grid">
+                    <div class="chart-card span-2">
+                        <h3>Spending Trends (Last 30 Days)</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-daily-trend"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Cost by Cloud Provider</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-by-provider"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card span-2">
+                        <h3>Cost by Cloud Service</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-by-service"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Cost by Resource Category</h3>
+                        <div class="chart-container">
+                            <canvas id="chart-by-resource"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Breaches Alerts -->
+                <div class="alert-section-card">
+                    <div class="section-card-header">
+                        <h3><i class="fa-solid fa-triangle-exclamation text-rose"></i> Recent Budget Alerts</h3>
+                        <button id="btn-read-all-alerts" class="btn btn-link hidden">Mark all as read</button>
+                    </div>
+                    <div id="dashboard-alerts-list" class="alerts-list">
+                        <!-- Loaded dynamically -->
+                        <div class="empty-state">
+                            <i class="fa-regular fa-bell-slash"></i>
+                            <p>No active budget breaches detected.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Anomaly Detection Center -->
+                <div class="alert-section-card mt-4" style="border-color: rgba(245, 158, 11, 0.2);">
+                    <div class="section-card-header">
+                        <h3><i class="fa-solid fa-triangle-exclamation text-warning"></i> Anomaly Detection Center</h3>
+                    </div>
+                    <div id="dashboard-anomalies-list" class="alerts-list">
+                        <!-- Loaded dynamically -->
+                        <div class="empty-state">
+                            <i class="fa-regular fa-circle-check text-emerald" style="font-size: 2.2rem;"></i>
+                            <p>No abnormal cost deviations detected in the past 90 days.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloud Accounts Panel -->
+            <div id="panel-accounts" class="content-panel">
+                <div class="section-bar">
+                    <h2>Manage Providers</h2>
+                    <button class="btn btn-primary" id="btn-open-account-modal">
+                        <i class="fa-solid fa-plus"></i> Add Account
+                    </button>
+                </div>
+
+                <div class="provider-overview-grid">
+                    <div class="provider-status-card aws">
+                        <div class="card-bg-icon"><i class="fa-brands fa-aws"></i></div>
+                        <div class="status-badge"><span class="pulse green"></span> Active</div>
+                        <h3>Amazon Web Services</h3>
+                        <p class="provider-desc">Simulated sync configuration for EC2, S3, RDS, and CloudFront billings.</p>
+                        <div class="provider-footer-stats">
+                            <div class="p-stat"><span id="aws-account-count">0</span> accounts</div>
+                            <div class="p-stat"><span id="aws-monthly-cost">$0</span> this month</div>
+                        </div>
+                    </div>
+                    <div class="provider-status-card azure">
+                        <div class="card-bg-icon"><i class="fa-brands fa-microsoft"></i></div>
+                        <div class="status-badge"><span class="pulse green"></span> Active</div>
+                        <h3>Microsoft Azure</h3>
+                        <p class="provider-desc">Simulated sync configuration for VMs, Blob Storage, SQL DB, and ExpressRoute.</p>
+                        <div class="provider-footer-stats">
+                            <div class="p-stat"><span id="azure-account-count">0</span> accounts</div>
+                            <div class="p-stat"><span id="azure-monthly-cost">$0</span> this month</div>
+                        </div>
+                    </div>
+                    <div class="provider-status-card oci">
+                        <div class="card-bg-icon"><i class="fa-solid fa-circle-nodes"></i></div>
+                        <div class="status-badge"><span class="pulse green"></span> Active</div>
+                        <h3>Oracle Cloud Infrastructure</h3>
+                        <p class="provider-desc">Simulated sync configuration for Compute, Object Storage, and Autonomous DB.</p>
+                        <div class="provider-footer-stats">
+                            <div class="p-stat"><span id="oci-account-count">0</span> accounts</div>
+                            <div class="p-stat"><span id="oci-monthly-cost">$0</span> this month</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card mt-4">
+                    <h3>Connected Accounts</h3>
+                    <div class="table-wrapper">
+                        <table id="accounts-table">
+                            <thead>
+                                <tr>
+                                    <th>Provider</th>
+                                    <th>Account Name</th>
+                                    <th>Account ID / OCID</th>
+                                    <th>Status</th>
+                                    <th>Last Synchronized</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                                <tr>
+                                    <td colspan="6" class="text-center">No accounts added yet. Click "Add Account" to connect provider billing.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budgets & Alerts Panel -->
+            <div id="panel-budgets" class="content-panel">
+                <div class="section-bar">
+                    <h2>Track Cost Limits</h2>
+                    <button class="btn btn-primary" id="btn-open-budget-modal">
+                        <i class="fa-solid fa-plus"></i> Set Budget
+                    </button>
+                </div>
+
+                <div class="budget-monitors-container" id="budget-progress-cards">
+                    <!-- Progress cards loaded dynamically -->
+                </div>
+
+                <div class="table-card mt-4">
+                    <h3>Configured Budgets</h3>
+                    <div class="table-wrapper">
+                        <table id="budgets-table">
+                            <thead>
+                                <tr>
+                                    <th>Budget Name</th>
+                                    <th>Scope</th>
+                                    <th>Limit</th>
+                                    <th>Threshold Alert</th>
+                                    <th>Current Spend</th>
+                                    <th>Email Alerts</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                                <tr>
+                                    <td colspan="7" class="text-center">No budgets configured yet. Click "Set Budget" to monitor spend thresholds.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cost Analytics Panel -->
+            <div id="panel-analytics" class="content-panel">
+                <div class="filter-panel-card">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="filter-account">Cloud Integration</label>
+                            <select id="filter-account">
+                                <option value="">All Accounts</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-start-date">Start Date</label>
+                            <input type="date" id="filter-start-date">
+                        </div>
+                        <div class="filter-group">
+                            <label for="filter-end-date">End Date</label>
+                            <input type="date" id="filter-end-date">
+                        </div>
+                        <button id="btn-apply-filters" class="btn btn-primary align-self-end">
+                            <i class="fa-solid fa-filter"></i> Apply
+                        </button>
+                    </div>
+                </div>
+
+                <div class="charts-grid mt-4">
+                    <div class="chart-card span-3">
+                        <h3>Daily Spending Breakdown</h3>
+                        <div class="chart-container">
+                            <canvas id="analytics-daily-trend"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-card mt-4">
+                    <h3>Service Utilization Costs</h3>
+                    <div class="table-wrapper">
+                        <table id="analytics-service-table">
+                            <thead>
+                                <tr>
+                                    <th>Service Name</th>
+                                    <th>Cloud Provider</th>
+                                    <th>Category</th>
+                                    <th>Date</th>
+                                    <th>Usage Quantity</th>
+                                    <th>Unit</th>
+                                    <th>Total Cost (USD)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Reports Panel -->
+            <div id="panel-reports" class="content-panel">
+                <div class="section-bar">
+                    <h2>Historical Monthly Statements</h2>
+                    <div class="actions">
+                        <button id="btn-export-csv" class="btn btn-secondary mr-2">
+                            <i class="fa-solid fa-file-csv"></i> Export CSV
+                        </button>
+                        <button id="btn-export-pdf" class="btn btn-secondary">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Billing Summaries by Month</h3>
+                    <div class="table-wrapper">
+                        <table id="reports-table">
+                            <thead>
+                                <tr>
+                                    <th>Billing Month</th>
+                                    <th>AWS Total</th>
+                                    <th>Azure Total</th>
+                                    <th>OCI Total</th>
+                                    <th>Total Spend</th>
+                                    <th>Active Accounts</th>
+                                    <th>Avg Daily Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="insights-card mt-4">
+                    <h3><i class="fa-regular fa-lightbulb text-indigo"></i> Cost Optimization Insights</h3>
+                    <div class="insights-grid">
+                        <div class="insight-item">
+                            <div class="insight-icon danger"><i class="fa-solid fa-circle-exclamation"></i></div>
+                            <div class="insight-content">
+                                <h4>Orphaned EBS Volumes (AWS)</h4>
+                                <p>Detected 8 unattached Amazon EBS storage volumes. Cleaning up these orphaned resources can save roughly $84.20 per month.</p>
+                            </div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-icon warning"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="insight-content">
+                                <h4>Underutilized Virtual Machines (Azure)</h4>
+                                <p>3 Azure Virtual Machines have sustained CPU utilization below 5%. Consider downsizing instance sizes (VM sizing) to save up to $145.00 monthly.</p>
+                            </div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-icon success"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="insight-content">
+                                <h4>Autonomous Database Reserved Capacity (OCI)</h4>
+                                <p>Your OCI database instances are running on standard rates. Switching to a 1-year reserved DB instance plan could reduce Oracle Database costs by 32%.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resource Inventory Panel -->
+            <div id="panel-resources" class="content-panel">
+                <div class="filter-panel-card mb-4">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="res-filter-account">Cloud Integration</label>
+                            <select id="res-filter-account">
+                                <option value="">All Accounts</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="res-filter-type">Resource Type</label>
+                            <select id="res-filter-type">
+                                <option value="">All Types</option>
+                                <option value="Compute">Compute (Instances)</option>
+                                <option value="Storage">Storage (Buckets/Disks)</option>
+                                <option value="Database">Database (RDS/Nodes)</option>
+                            </select>
+                        </div>
+                        <button id="btn-apply-res-filters" class="btn btn-primary align-self-end">
+                            <i class="fa-solid fa-filter"></i> Apply
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <h3>Active Cloud Resources</h3>
+                    <div class="table-wrapper">
+                        <table id="resources-table">
+                            <thead>
+                                <tr>
+                                    <th>Resource Name</th>
+                                    <th>Resource ID</th>
+                                    <th>Type</th>
+                                    <th>Size / Shape</th>
+                                    <th>Region</th>
+                                    <th>Status</th>
+                                    <th>Daily Cost</th>
+                                    <th>Tags</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                                <tr>
+                                    <td colspan="8" class="text-center">No active resources found. Connect a cloud account to inventory assets.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulated Email Sandbox Panel -->
+            <div id="panel-email-sandbox" class="content-panel">
+                <div style="display: flex; gap: 20px; min-height: 480px; height: calc(100vh - 160px);">
+                    <!-- Email List Pane (Left) -->
+                    <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; max-width: 360px; min-width: 280px; padding: 16px; background: rgba(26, 29, 46, 0.45);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 12px; margin-bottom: 12px;">
+                            <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-inbox text-gradient"></i> Sandbox Inbox</h3>
+                            <button id="btn-clear-inbox" class="btn btn-danger btn-sm" style="font-size: 0.68rem; padding: 4px 8px; border-radius: 4px;">
+                                <i class="fa-solid fa-trash-can"></i> Clear All
+                            </button>
+                        </div>
+                        <div id="email-inbox-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Loaded dynamically -->
+                            <div class="text-center text-muted" style="padding: 40px 10px; font-size: 0.8rem;">Your simulated inbox is empty. Trigger a budget alert to see notifications here.</div>
+                        </div>
+                    </div>
+                    <!-- Email Content Pane (Right) -->
+                    <div class="card" style="flex: 2; display: flex; flex-direction: column; overflow: hidden; padding: 20px; background: rgba(18, 21, 34, 0.7); border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <div id="email-reading-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 16px; margin-bottom: 16px;">
+                            <h3 id="email-subject-view" style="margin: 0 0 10px 0; color: #818cf8; font-family: 'Outfit', sans-serif; font-size: 1.25rem;">Select an email to read</h3>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-secondary);">
+                                <span id="email-sender-view">From: Maheshwari Cloud Alerts</span>
+                                <span id="email-date-view"></span>
+                            </div>
+                        </div>
+                        <div id="email-body-view" style="flex: 1; overflow-y: auto; white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; color: #cbd5e1; background: rgba(0,0,0,0.22); padding: 16px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.03); line-height: 1.5;">
+                            Please select a budget alert email from the list on the left to read its contents.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: ADD CLOUD ACCOUNT -->
+    <div id="account-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Connect Cloud Provider</h3>
+                <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="add-account-form">
+                <div class="form-group">
+                    <label for="acc-provider">Cloud Provider</label>
+                    <select id="acc-provider" required>
+                        <option value="AWS">Amazon Web Services (AWS)</option>
+                        <option value="AZURE">Microsoft Azure</option>
+                        <option value="OCI">Oracle Cloud Infrastructure (OCI)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="acc-name">Account Name / Alias</label>
+                    <input type="text" id="acc-name" required placeholder="e.g. AWS Production Hub">
+                </div>
+                <div class="form-group">
+                    <label id="lbl-acc-id" for="acc-identifier">AWS Account ID</label>
+                    <input type="text" id="acc-identifier" required placeholder="12-digit AWS account number">
+                </div>
+                <div class="form-group">
+                    <label id="lbl-acc-key" for="acc-key">Access Key ID</label>
+                    <input type="text" id="acc-key" required placeholder="AKIAIOSFODNN7EXAMPLE">
+                </div>
+                <div class="form-group">
+                    <label id="lbl-acc-secret" for="acc-secret">Secret Access Key</label>
+                    <input type="password" id="acc-secret" required placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY">
+                </div>
+                <div class="form-group" id="group-acc-optional">
+                    <label id="lbl-acc-optional" for="acc-optional">Default Region</label>
+                    <input type="text" id="acc-optional" placeholder="e.g. us-east-1">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Connect Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: SET BUDGET -->
+    <div id="budget-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Set Spend Budget</h3>
+                <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="set-budget-form">
+                <div class="form-group">
+                    <label for="bud-name">Budget Title</label>
+                    <input type="text" id="bud-name" required placeholder="e.g. EC2 Monthly Limit">
+                </div>
+                <div class="form-group">
+                    <label for="bud-scope">Budget Scope</label>
+                    <select id="bud-scope">
+                        <option value="">Global (All Clouds)</option>
+                        <!-- Account options loaded dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bud-limit">Limit Amount ($ USD)</label>
+                    <input type="number" id="bud-limit" required min="1" step="0.01" placeholder="e.g. 500.00">
+                </div>
+                <div class="form-group">
+                    <label for="bud-threshold">Alert Threshold (%)</label>
+                    <input type="number" id="bud-threshold" required min="10" max="200" value="80" placeholder="e.g. 80">
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="bud-email" checked>
+                    <label for="bud-email">Send email alert to administrators upon breach</label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT PROFILE -->
+    <div id="profile-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Edit Profile Settings</h3>
+                <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="profile-form">
+                <div class="form-group">
+                    <label for="prof-username">Username</label>
+                    <input type="text" id="prof-username" required placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label for="prof-email">Email Address</label>
+                    <input type="email" id="prof-email" required placeholder="Enter email address">
+                </div>
+                <div class="form-group">
+                    <label for="prof-password">New Password</label>
+                    <input type="password" id="prof-password" placeholder="Leave blank to keep current password">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>

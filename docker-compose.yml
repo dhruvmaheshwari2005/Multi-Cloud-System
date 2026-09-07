@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql-db:
+    image: mysql:8.0
+    container_name: costmonitor-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: costdb
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  # MailDev Service (Mock SMTP server & visual Webmail viewer for email notifications)
+  maildev:
+    image: maildev/maildev:2.1.0
+    container_name: costmonitor-maildev
+    restart: always
+    ports:
+      - "1025:1025" # SMTP Port
+      - "1080:1080" # Webmail GUI Port (View email alerts sent by the dashboard)
+
+volumes:
+  mysql-data:
